@@ -273,3 +273,35 @@ prp(model1, type = 0, extra = 1, under = TRUE)
 # plot our full house classifier 
 rpart.plot(model1)
 ```
+Our prediction is produced. Let us submit to Kaggle for an evaluation. We need to convert our prediction into Kaggle’s required format and save it into a file and name it as “Tree_Model1.CSV”. Here, the importance is knowing the procedure.
+
+
+```{r}
+# produce a submit with Kaggle required format that is only two attributes: PassengerId and Survived
+submit1 <- data.frame(PassengerId = titanic_test$PassengerId, Survived = Prediction1)
+# Write it into a file "Tree_Model1.CSV"
+write.csv(submit1, file = "/Users/bkhan/Documents/Projects/titanic/Tree_Model1.csv", row.names = FALSE)
+```
+
+
+We check our prediction model’s performance. We check our prediction’s death and survive ratio on the test dataset and compare with the same ratio on the train dataset.
+
+```{r}
+# Inspect prediction
+summary(submit1$Survived)
+```
+
+```{r}
+prop.table(table(submit1$Survived, dnn="Test survive percentage"))
+```
+
+```{r}
+#train survive ratio
+prop.table(table(as.factor(titanic_train$Survived), dnn="Train survive percentage"))
+```
+
+The result shows that among a total of 418 passengers in the test dataset, 272 passengers predicted non survived (with survived value 0), which counts as 65%, and 146 passengers predicted to be survived (with survived value 1) and which count as 35%. This is not too far from the ratio on the training dataset, which was 62% non survived and 38% survived.
+
+```{r}
+print.data.frame(submit1)
+```
