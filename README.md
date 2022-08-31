@@ -9,9 +9,10 @@ Kaggle competition usually provides competition data. There is a “Data” tab 
 
 There are three files in the Titanic Challenge:
 
--train.csv,
--test.csv, and
--gender_submission.csv.
+- train.csv,
+- test.csv, and
+- gender_submission.csv
+
 The training set is supposedly used to build your models. For the training set, it provides the outcome (also known as the “ground truth”) for each passenger. 
 
 The test set should be used to see how well our model performs on unseen data. For the test set, there is no ground truth for each passenger is provided. It is our job to predict these outcomes. For each passenger in the test set, we will use the model trained to predict whether or not they survived the sinking of the Titanic.
