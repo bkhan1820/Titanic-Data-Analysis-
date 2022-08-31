@@ -23,23 +23,70 @@ The data sets has also include gender_submission.csv, a set of predictions that 
 
 The example submission in “Gender_submission” predicts that all female passengers survived, and all male passengers died. It is clearly biased. Our hypotheses regarding survival will probably be different, which will lead to a different submission file.
 
-## Data Preprocessing
+### Basic understanding of the data
 
-Our aim is to find out:
 
-- any errors and missing values
-- value distribution
-- potential relation with the attribute to be predicted 
 
-Since the examine covers both datesets train and test, it make sense to combine the two datasets into one big dataset, so it can save us to run the same code twice on the different datasets.
-
+We start reading our training and test set:
 ```
-# Add a "Survived" attribute to the test dataset to allow for combining with train dataset
-
-test <- data.frame(test[1], Survived = rep("NA", nrow(test)), test[ , 2:ncol(test)])
-
-# Combine data sets. Append test.survived to train
-data <- rbind(train, test)
-# We may need to keep the raw data into a file in case we need it later.
-write.csv(data, "./data/data.cvs", row.names = FALSE )
+titanic_train <-read.csv("train.csv")
+titanic_test <- read.csv("test.csv")
 ```
+
+We can check the structure of the data using str():
+
+```{r, results='hide'}
+str(titanic_train)
+```
+```{r, results='hide'}
+str(titanic_test)
+```
+
+The training set has 891 observations and 12 variables and the testing set has 418 observations and 11 variables. The traning set has 1 extra varible. Check which which one we are missing. I know we could see that in a very small dataset like this, but if its larger we want two compare them.
+
+```{r}
+colnames_check <- colnames(titanic_train) %in% colnames(titanic_test)
+colnames(titanic_train[colnames_check==FALSE])
+```
+
+As we can see we are missing the Survived in the test set. Which is correct because thats our challenge, we must predict this by creating a model.
+
+
+```{r}
+#Use sapply(#object, class) to check the class of every column.
+sapply(titanic_train, class)
+```
+
+We can see that the Survived and Pclass column are integers and Sex character. But they are actually categorical variables. To convert them into categorical variables (or factors), use the factor() function.Survived is a nominal categorical variable, whereas Pclass is an ordinal categorical variable. For an ordinal variable, we provide the order=TRUE and levels argument in the ascending order of the values( Pclass 3 < Pclass 2 < Pclass 1).
+
+```{r}
+#change columns class
+#Survived: from integer into factor
+titanic_train$Survived = as.factor(titanic_train$Survived)
+titanic_train$Sex = as.factor(titanic_train$Sex)
+titanic_train$Pclass=factor(titanic_train$Pclass,order=TRUE, levels = c(3, 2, 1))
+```
+
+Let’s look deeper into the training set, and check how many passengers that survived vs did not make it.
+
+```{r}
+table(titanic_train$Survived)
+```
+
+Out of the 891 there are only 342 who survived it. Check also as proportions.
+
+```{r}
+prop.table(table(titanic_train$Survived))
+```
+
+A little more than one-third of the passengers survived the disaster. Now see if there is a difference between males and females that survived vs males that passed away.
+
+```{r}
+table(titanic_train$Sex, titanic_train$Survived)
+```
+```{r}
+prop.table(table(titanic_train$Sex, titanic_train$Survived),margin = 1)
+```
+
+
+As we can see most of the female survived and most of the male did not make it.
