@@ -227,3 +227,49 @@ titanic_train_dropedna %>%
   labs(title = "Survival rates by Age", x = NULL)
 ```
 Passengers who survived seems to have a lower median age.
+
+## Decision Tree Model
+
+Now I am going to train a model to predict survivability and then test the model. The model will be saved and submitted to Kaggle. The file I send to Kaggle needs to have the Passenger ID and the prediction of whether or not that passenger survived.
+
+
+```{r}
+library(tidyverse)
+library(caret)
+library(rpart)
+set.seed(123)  # for reproducibility
+model1 <- rpart(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked, data=titanic_train,method="class")
+```
+
+```{r}
+library(caret)
+options(digits=4)
+# assess the model's accuracy with train dataset by make a prediction on the train data. 
+Predict_model1_train <- predict(model1, titanic_train, type = "class")
+#build a confusion matrix to make comparison
+conMat <- confusionMatrix(as.factor(Predict_model1_train), as.factor(titanic_train$Survived))
+#show confusion matrix 
+conMat$table
+```
+
+A brief assessment shows our model1’s accuracy is 83.28%. It is not bad! Let us use this model to make a prediction on test dataset.
+
+```{r}
+#show percentage of same values - accuracy
+predict_train_accuracy <- conMat$overall["Accuracy"]
+predict_train_accuracy
+```
+
+```{r}
+# The firs prediction produced by the first decision tree which only used one predictor Sex
+Prediction1 <- predict(model1, titanic_test, type = "class")
+```
+
+
+```{r}
+# plot our full house classifier 
+library(rpart.plot)
+prp(model1, type = 0, extra = 1, under = TRUE)
+# plot our full house classifier 
+rpart.plot(model1)
+```
