@@ -90,3 +90,140 @@ prop.table(table(titanic_train$Sex, titanic_train$Survived),margin = 1)
 
 
 As we can see most of the female survived and most of the male did not make it.
+
+## Data Preparation
+
+Now we need to clean the dataset to create our models. Note that it is important to explore the data so that we understand what elements need to be cleaned.
+
+```{r, results='hide'}
+#missing data
+is.na(titanic_train)
+sum(is.na(titanic_train))
+```
+
+```{r}
+#This function shows us exactly how much values are missing in each column.
+apply(titanic_train, MARGIN = 2, FUN = function(x) {sum(is.na(x))})
+```
+
+```{r}
+# Graphically check the missing data
+library("mice")
+missing_pattern <- md.pattern(titanic_train, rotate.names = TRUE)
+```
+
+```{r}
+colSums(is.na(titanic_test))
+```
+
+
+As we can see we have missing values in Age in the training set and Age, Fare in the test set.
+
+First we tackle the missing Fare, because this is only one value. Let see in wich row it’s missing.
+
+```{r}
+titanic_test[!complete.cases(titanic_test$Fare),]
+```
+
+As we can see the passenger on row 1044 has an NA Fare value. Now, we need to deal with the NA values in Age column. We will drop these rows using na.omit. Since the PassengerID is a unique identifier for the records, we will drop it. Intuitively the Name, Fare, Embarked and Ticket columns will not decide the survival, so we will drop them as well. So we will select the remaining columns using the select() function from dplyr library:
+
+```{r}
+#drop missing data
+titanic_test_dropedna <- na.omit(titanic_test)
+titanic_train_dropedna <- na.omit(titanic_train)
+library(dplyr)
+titanic_train_1 <-  select(titanic_train_dropedna, Survived, Pclass, Age, Sex, SibSp, Parch)
+titanic_test_1 <- select(titanic_train_dropedna, Survived, Pclass, Age, Sex, SibSp, Parch)
+```
+
+
+```{r, results='hide'}
+#Alternatively we can use dropping NAs by:
+titanic_train[rowSums(is.na(titanic_train)) <= 0,]
+# or
+library(tidyr)
+titanic_train %>% drop_na()
+```
+
+```{r}
+#separate data
+titanic_survivor = titanic_train_dropedna[titanic_train_dropedna$Survived == 1, ]
+titanic_nonsurvivor = titanic_train_dropedna[titanic_train_dropedna$Survived == 0, ]
+```
+
+## Data Visualization
+
+```{r}
+#barchart
+barplot(table(titanic_survivor$Sex))
+barplot(table(titanic_nonsurvivor$Sex))
+```
+
+```{r}
+## number of  survivals by Sex
+library(ggplot2)
+ggplot(titanic_survivor, aes(x = Sex)) +
+  geom_bar(width=0.5, fill = "coral") +
+  geom_text(stat='count', aes(label=stat(count)), vjust=-0.5) +
+  theme_classic()
+```
+```{r}
+## number of  Non survivals by Sex
+library(ggplot2)
+ggplot(titanic_nonsurvivor, aes(x = Sex)) +
+  geom_bar(width=0.5, fill = "coral") +
+  geom_text(stat='count', aes(label=stat(count)), vjust=-0.5) +
+  theme_classic()
+```
+```{r}
+ggplot(titanic_train_dropedna, aes(x = Survived, fill=Sex)) +
+ geom_bar(position = position_dodge()) +
+ geom_text(stat='count', 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), vjust=-0.5)+
+ theme_classic()
+```
+
+```{r}
+ggplot(titanic_train_dropedna, aes(x = Pclass, fill=Sex)) +
+ geom_bar(position = position_dodge()) +
+ geom_text(stat='count', 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), vjust=-0.5)+
+ theme_classic()
+```
+
+Here we have created a temporary attribute called Discretized.age which groups the ages with a span of 10 years.
+We discretize the age using the cut() function and specify the cuts in a vector.
+The temporary attribute it discarded after plotting.
+Most of the patients that died during hospitalization are in the age range from 70-80 years old.
+
+```{r}
+#Discretize age to plot survival
+titanic_survivor$Discretized.age = cut(titanic_survivor$Age, c(0,10,20,30,40,50,60,70,80,100))
+# Plot discretized age
+ggplot(titanic_survivor, aes(x = Discretized.age, fill=Sex)) +
+  geom_bar(position = position_dodge()) +
+  geom_text(stat='count', aes(label=stat(count)), position = position_dodge(width=1), vjust=-0.5)+
+  theme_classic()
+#data.frame$Discretized.age = NULL
+```
+
+```{r}
+ggplot(titanic_survivor, aes(x = Pclass, fill=Sex)) +
+ geom_bar(position = position_dodge()) +
+ geom_text(stat='count', 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), vjust=-0.5)+
+ theme_classic()
+```
+
+```{r}
+# Boxplot
+titanic_train_dropedna %>% 
+  ggplot(aes(x = Survived, y = Age)) +
+  geom_boxplot() +
+  theme_classic() +
+  labs(title = "Survival rates by Age", x = NULL)
+```
+Passengers who survived seems to have a lower median age.
