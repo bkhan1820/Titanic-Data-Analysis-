@@ -1,0 +1,341 @@
+---
+title: "Titanic Data Analysis"
+author: "Bahram Khanlarov"
+date: "2022-08-08"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Introduction
+
+The sinking of the Titanic is one of the most infamous shipwrecks in history.
+
+On April 15, 1912, during her maiden voyage, the widely considered “unsinkable” RMS Titanic sank after colliding with an iceberg. Unfortunately, there weren’t enough lifeboats for everyone onboard, resulting in the death of 1502 out of 2224 passengers and crew.While there was some element of luck involved in surviving, it seems some groups of people were more likely to survive than others.
+
+ We get the dataset from Kaggle platfoem through the link: https://www.kaggle.com/competitions/titanic/data 
+We do basic data preparation and data exploration on this dataset.
+
+### Basic understanding of the data
+
+We start reading our training and test set:
+```{r cars}
+titanic_train <-read.csv("train.csv")
+titanic_test <- read.csv("test.csv")
+```
+
+We can check the structure of the data using str():
+
+```{r, results='hide'}
+
+str(titanic_train)
+```
+```{r, results='hide'}
+str(titanic_test)
+```
+
+The training set has 891 observations and 12 variables and the testing set has 418 observations and 11 variables. The traning set has 1 extra varible. Check which which one we are missing. I know we could see that in a very small dataset like this, but if its larger we want two compare them.
+
+```{r}
+colnames_check <- colnames(titanic_train) %in% colnames(titanic_test)
+colnames(titanic_train[colnames_check==FALSE])
+```
+
+As we can see we are missing the Survived in the test set. Which is correct because thats our challenge, we must predict this by creating a model.
+
+
+```{r}
+#Use sapply(#object, class) to check the class of every column.
+sapply(titanic_train, class)
+```
+
+We can see that the Survived and Pclass column are integers and Sex and Embarked character. But they are actually categorical variables. To convert them into categorical variables (or factors), use the factor() function.Survived is a nominal categorical variable, whereas Pclass is an ordinal categorical variable. For an ordinal variable, we provide the order=TRUE and levels argument in the ascending order of the values( Pclass 3 < Pclass 2 < Pclass 1).
+
+```{r}
+#change columns class
+#Survived: from integer into factor
+titanic_train$Survived = as.factor(titanic_train$Survived)
+titanic_train$Sex = as.factor(titanic_train$Sex)
+titanic_train$Embarked=as.factor(titanic_train$Embarked)
+titanic_train$Pclass=factor(titanic_train$Pclass,order=TRUE, levels = c(3, 2, 1))
+titanic_test$Sex = as.factor(titanic_test$Sex)
+titanic_test$Embarked=as.factor(titanic_test$Embarked)
+titanic_test$Pclass=factor(titanic_test$Pclass,order=TRUE, levels = c(3, 2, 1))
+```
+
+Let’s look deeper into the training set, and check how many passengers that survived vs did not make it.
+
+```{r}
+table(titanic_train$Survived)
+
+```
+
+Out of the 891 there are only 342 who survived it. Check also as proportions.
+
+```{r}
+prop.table(table(titanic_train$Survived))
+```
+
+A little more than one-third of the passengers survived the disaster. Now see if there is a difference between males and females that survived vs males that passed away.
+
+```{r}
+table(titanic_train$Sex, titanic_train$Survived)
+
+```
+```{r}
+prop.table(table(titanic_train$Sex, titanic_train$Survived),margin = 1)
+```
+
+
+As we can see most of the female survived and most of the male did not make it.
+
+
+## Data Preparation
+
+Now we need to clean the dataset to create our models. Note that it is important to explore the data so that we understand what elements need to be cleaned.
+
+```{r, results='hide'}
+#missing data
+
+is.na(titanic_train)
+sum(is.na(titanic_train))
+```
+
+```{r}
+#This function shows us exactly how much values are missing in each column.
+apply(titanic_train, MARGIN = 2, FUN = function(x) {sum(is.na(x))})
+```
+
+```{r}
+# Graphically check the missing data
+library("mice")
+missing_pattern <- md.pattern(titanic_train, rotate.names = TRUE)
+```
+
+```{r}
+colSums(is.na(titanic_test))
+```
+
+
+
+From the Training Data, the only thing missing is the age of 177 passengers of the 891 in the set. From the Test Data we are missing the age of 86 passengers and the Fare for 1 of the 418 in the dataset.
+
+For the missing ages, it has been a common practice to use the median age, to replace missing age values. for both datasets, the returned value was 28 for the train_data and 27 for the test_data, so I will replace the missing values with these numbers.
+
+```{r}
+#Filling missing values for Age
+median(titanic_train$Age, na.rm=TRUE)
+median(titanic_test$Age, na.rm=TRUE)
+```
+```{r}
+titanic_train$Age  <- ifelse(is.na(titanic_train$Age), 28, titanic_train$Age)
+titanic_test$Age  <- ifelse(is.na(titanic_test$Age), 27, titanic_test$Age)
+```
+
+In the test data, there was one instances where the fare was missing. I found that there was 3rd Class passanger, named Thomas Storey, who was a 60 year old male, who embarked from Scottland that had a missing fare value. The rounded mean fare for 3rd class passangers that embarked from Scottland was 7.90, and I will replace it with that value.
+
+```{r}
+titanic_test[!complete.cases(titanic_test$Fare),]
+thrd_cl_fr <- subset(titanic_test, c(titanic_test$Pclass==3, titanic_test$Embarked=="S"))
+m_fare <- round(median(thrd_cl_fr$Fare, na.rm=TRUE),2)
+m_fare
+titanic_test$Fare <- ifelse(is.na(titanic_test$Fare), m_fare, titanic_test$Fare)
+```
+
+Running the code to check for NA for missing values after I cleaned the ages and the one Fare, I returned zero missing values. However I ran a table for the columns and found that the train_data had two rows with no Embark data. For this field the mode is "S", so I will replace those two values with "S".
+
+```{r}
+
+sum(is.na(titanic_train))
+sum(is.na(titanic_test))
+
+```
+
+
+
+
+```{r}
+table(titanic_train$Embarked)
+table(titanic_test$Embarked)
+m_embarked <-subset(titanic_train, titanic_train$Embarked==" ")
+m_embarked
+
+titanic_train[titanic_train$Embarked==" ", "Embarked"] <- "S"
+
+```
+
+
+
+```{r}
+
+#separate data
+titanic_survivor = titanic_train[titanic_train$Survived == 1, ]
+titanic_nonsurvivor = titanic_train[titanic_train$Survived == 0, ]
+```
+
+## Data Visualization
+
+```{r}
+#barchart
+barplot(table(titanic_survivor$Sex))
+barplot(table(titanic_nonsurvivor$Sex))
+```
+
+```{r}
+## number of  survivals by Sex
+
+library(ggplot2)
+ggplot(titanic_survivor, aes(x = Sex)) +
+  geom_bar(width=0.5, fill = "coral") +
+  geom_text(stat='count', aes(label=stat(count)), vjust=-0.5) +
+  theme_classic()
+```
+```{r}
+## number of  Non survivals by Sex
+
+library(ggplot2)
+ggplot(titanic_nonsurvivor, aes(x = Sex)) +
+  geom_bar(width=0.5, fill = "coral") +
+  geom_text(stat='count', aes(label=stat(count)), vjust=-0.5) +
+  theme_classic()
+```
+```{r}
+ggplot(titanic_train, aes(x = Survived, fill=Sex)) +
+ geom_bar(position = position_dodge()) +
+ geom_text(stat='count', 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), vjust=-0.5)+
+ theme_classic()
+```
+
+```{r}
+ggplot(titanic_train, aes(x = Pclass, fill=Sex)) +
+ geom_bar(position = position_dodge()) +
+ geom_text(stat='count', 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), vjust=-0.5)+
+ theme_classic()
+```
+
+Here we have created a temporary attribute called Discretized.age which groups the ages with a span of 10 years.
+We discretize the age using the cut() function and specify the cuts in a vector.
+The temporary attribute it discarded after plotting.
+Most of the patients that died during hospitalization are in the age range from 70-80 years old.
+
+```{r}
+#Discretize age to plot survival
+titanic_survivor$Discretized.age = cut(titanic_survivor$Age, c(0,10,20,30,40,50,60,70,80,100))
+# Plot discretized age
+ggplot(titanic_survivor, aes(x = Discretized.age, fill=Sex)) +
+  geom_bar(position = position_dodge()) +
+  geom_text(stat='count', aes(label=stat(count)), position = position_dodge(width=1), vjust=-0.5)+
+  theme_classic()
+#data.frame$Discretized.age = NULL
+```
+
+```{r}
+ggplot(titanic_survivor, aes(x = Pclass, fill=Sex)) +
+ geom_bar(position = position_dodge()) +
+ geom_text(stat='count', 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), vjust=-0.5)+
+ theme_classic()
+```
+
+```{r}
+# Boxplot
+library(magrittr)
+titanic_train %>% 
+  ggplot(aes(x = Survived, y = Age)) +
+  geom_boxplot() +
+  theme_classic() +
+  labs(title = "Survival rates by Age", x = NULL)
+```
+Passengers who survived seems to have a lower median age.
+
+
+## Decision Tree Model
+
+Now I am going to train a model to predict survivability and then test the model. The model will be saved and submitted to Kaggle. The file I send to Kaggle needs to have the Passenger ID and the prediction of whether or not that passenger survived.
+
+
+```{r}
+library(tidyverse)
+library(caret)
+library(rpart)
+set.seed(123)  # for reproducibility
+model1 <- rpart(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked, data=titanic_train,method="class")
+```
+
+```{r}
+library(caret)
+options(digits=4)
+# assess the model's accuracy with train dataset by make a prediction on the train data. 
+Predict_model1_train <- predict(model1, titanic_train, type = "class")
+#build a confusion matrix to make comparison
+conMat <- confusionMatrix(as.factor(Predict_model1_train), as.factor(titanic_train$Survived))
+#show confusion matrix 
+conMat$table
+```
+
+A brief assessment shows our model1’s accuracy is 83.28%. It is not bad! Let us use this model to make a prediction on test dataset.
+
+```{r}
+#show percentage of same values - accuracy
+predict_train_accuracy <- conMat$overall["Accuracy"]
+predict_train_accuracy
+```
+
+```{r}
+# The firs prediction produced by the first decision tree which only used one predictor Sex
+Prediction1 <- predict(model1, titanic_test, type = "class")
+```
+
+
+```{r}
+# plot our full house classifier 
+library(rpart.plot)
+prp(model1, type = 0, extra = 1, under = TRUE)
+# plot our full house classifier 
+rpart.plot(model1)
+```
+
+
+Our prediction is produced. Let us submit to Kaggle for an evaluation. We need to convert our prediction into Kaggle’s required format and save it into a file and name it as “Tree_Model1.CSV”. Here, the importance is knowing the procedure.
+
+
+```{r}
+# produce a submit with Kaggle required format that is only two attributes: PassengerId and Survived
+submit1 <- data.frame(PassengerId = titanic_test$PassengerId, Survived = Prediction1)
+# Write it into a file "Tree_Model1.CSV"
+write.csv(submit1, file = "/Users/bkhan/Documents/Projects/titanic/Tree_Model1.csv", row.names = FALSE)
+```
+
+
+We check our prediction model’s performance. We check our prediction’s death and survive ratio on the test dataset and compare with the same ratio on the train dataset.
+
+```{r}
+# Inspect prediction
+summary(submit1$Survived)
+```
+
+```{r}
+prop.table(table(submit1$Survived, dnn="Test survive percentage"))
+```
+
+```{r}
+#train survive ratio
+prop.table(table(as.factor(titanic_train$Survived), dnn="Train survive percentage"))
+```
+
+The result shows that among a total of 418 passengers in the test dataset, 272 passengers predicted non survived (with survived value 0), which counts as 65%, and 146 passengers predicted to be survived (with survived value 1) and which count as 35%. This is not too far from the ratio on the training dataset, which was 62% non survived and 38% survived.
+
+```{r}
+print.data.frame(submit1)
+```
+
