@@ -25,6 +25,12 @@ The example submission in “Gender_submission” predicts that all female passe
 
 ## Data Preprocessing
 
+Our aim is to find out:
+
+- any errors and missing values
+- value distribution
+- potential relation with the attribute to be predicted 
+
 Since the examine covers both datesets train and test, it make sense to combine the two datasets into one big dataset, so it can save us to run the same code twice on the different datasets.
 
 ```
