@@ -1,5 +1,7 @@
 #  Titanic Data Analysis 
 
+
+## About
 The Titanic dataset comes from the Kaggle website https://www.kaggle.com/competitions/titanic/data and explained with the following description:
 
 "The sinking of the Titanic is one of the most infamous shipwrecks in history.On April 15, 1912, during her maiden voyage, the widely considered “unsinkable” RMS Titanic sank after colliding with an iceberg. Unfortunately, there weren’t enough lifeboats for everyone onboard, resulting in the death of 1502 out of 2224 passengers and crew.While there was some element of luck involved in surviving, it seems some groups of people were more likely to survive than others.In this challenge, we ask you to build a predictive model that answers the question: “what sorts of people were more likely to survive?” using passenger data (i.e. name, age, gender, socio-economic class, etc.)."
@@ -20,3 +22,18 @@ The test set should be used to see how well our model performs on unseen data. F
 The data sets has also include gender_submission.csv, a set of predictions that assume all and only female passengers survive, as an example of what a submission file should look like.Titanic competition requires the results need be submitted in the file. The file structure is demonstrated in the “gender_submission.csv”. It is also provided as an example that shows how we should structure your results, which means predictions.
 
 The example submission in “Gender_submission” predicts that all female passengers survived, and all male passengers died. It is clearly biased. Our hypotheses regarding survival will probably be different, which will lead to a different submission file.
+
+## Data Preprocessing
+
+Since the examine covers both datesets train and test, it make sense to combine the two datasets into one big dataset, so it can save us to run the same code twice on the different datasets.
+
+```
+# Add a "Survived" attribute to the test dataset to allow for combining with train dataset
+
+test <- data.frame(test[1], Survived = rep("NA", nrow(test)), test[ , 2:ncol(test)])
+
+# Combine data sets. Append test.survived to train
+data <- rbind(train, test)
+# We may need to keep the raw data into a file in case we need it later.
+write.csv(data, "./data/data.cvs", row.names = FALSE )
+```
