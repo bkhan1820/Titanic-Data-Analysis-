@@ -230,6 +230,7 @@ Passengers who survived seems to have a lower median age.
 
 ## Decision Tree Model
 
+We'll start with a model called the Decision Tree. There are fancier models that give more accurate predictions. But decision trees are easy to understand, and they are the basic building block for some of the best models in data science.
 Now I am going to train a model to predict survivability and then test the model. The model will be saved and submitted to Kaggle. The file I send to Kaggle needs to have the Passenger ID and the prediction of whether or not that passenger survived. We obtained Kaggle submission score of 0.7751 which represents our submission's accuracy. A score of 0.7751 in this competition indicates we predicted Titanic survival correctly for 77.51% of people.
 
 
